@@ -6,70 +6,68 @@ var CCMovieSelector = {
         DOWNTOWN_URL: "https://caribbeanpay.com/theaters/downtowncenter/",
         REFRESH_TIME: 10000,
         getPhases: ['selectDate', 'findMovie', 'selectSeats', 'selectPaymentMethod', 'makePayment', 'confirmPayment', 'paymentConfirmed'],
-        start: function() {
-            const me = this;
-            me.setMovieSelector('selectDate');
-            location.assign(me.DOWNTOWN_URL);
+        start() {
+            this.setMovieSelector('selectDate');
+            location.assign(this.DOWNTOWN_URL);
         },
-        stop: function() {
+        stop() {
             localStorage.removeItem('CCMovieSelector');
         },
-        handleCCMovieSelector: function() {
-            const me = this;
+        handleCCMovieSelector() {
             const MAIN_URL = 'caribbeanpay.com';
             const PAYMENT_URL = 'pagos.azul.com.do/paymentpage';
             const HREF = location.href;
             if(HREF.includes(MAIN_URL)) {
-                let movieSelector = me.getMovieSelector();
+                let movieSelector = this.getMovieSelector();
                 if (movieSelector) {
                     let phase = movieSelector.phase;
                     switch(phase) {
                         case 'selectDate':
-                            me.selectDate(me.day, me.month);
+                            this.selectDate(this.day, this.month);
                             movieSelector.actionsTaken.push('Date selected. ' + new Date());
-                            me.saveMovieSelector(movieSelector);
+                            this.saveMovieSelector(movieSelector);
                             break;
                         case 'findMovie':
-                            //me.findMovie(this.AMOUNT);
-                            me.selectDate(me.day, me.month);
+                            this.selectDate(this.day, this.month);
                             break;
                         case 'selectSeats':
-                            me.selectSeats(this.AMOUNT);
+                            this.selectSeats(this.AMOUNT);
                             break;
                         case 'selectPaymentMethod':
-                            me.selectPaymentMethod();
+                            this.selectPaymentMethod();
                             break;
                         case 'paymentConfirmed':
                             movieSelector.actionsTaken.push('Payment Confirmed. ' + new Date());
-                            me.saveMovieSelector(movieSelector);
-                            setTimeout(function() {
-                                //localStorage.removeItem('CCMovieSelector');
+                            this.saveMovieSelector(movieSelector);
+                            setTimeout(() => {
                                 window.close();
                             }, 10000);
                             break;
                         default:
                             movieSelector.actionsTaken.push('Phase not set. ' + new Date());
-                            me.saveMovieSelector(movieSelector);
+                            this.saveMovieSelector(movieSelector);
                     }
-                }/* else {
-                    me.setMovieSelector();
-                    location.reload();
-                }*/
+                }
             }else if(HREF.includes(PAYMENT_URL)) {
                 const HREF = location.href;
-                if(HREF.includes('pagos.azul.com.do/paymentpage/MakePayment')) {
-                    me.setMovieSelector('makePayment');
-                    me.makePayment();
-                }else if(HREF.includes('pagos.azul.com.do/paymentpage/ConfirmPayment')) {
-                    me.setMovieSelector('confirmPayment');
-                    me.confirmPayment();
+
+                const isInMakePaymentPage = HREF.includes('pagos.azul.com.do/paymentpage/MakePayment');
+                const isInConfirmPaymentPage = HREF.includes('pagos.azul.com.do/paymentpage/ConfirmPayment');
+
+                if(isInMakePaymentPage) {
+                    this.setMovieSelector('makePayment');
+                    this.makePayment();
+                }else if(isInConfirmPaymentPage) {
+                    this.setMovieSelector('confirmPayment');
+                    this.confirmPayment();
                 }
             }
         },
-        selectDate: function(day = '25', month = 'Abril') {
+        selectDate(day = '25', month = 'Abril') {
             console.info('Searching date.');
-            const me = this;
-            if(!me.isLoggedIn()) me.logIn();
+            if(!this.isLoggedIn()) {
+                this.logIn();
+            }
             const dateBar = $('.dates-bar');
             let dateFound = false;
             if(dateBar) {
@@ -77,27 +75,25 @@ var CCMovieSelector = {
                     let elemChildren = $(elem).children();
                     let dayElem = elemChildren.eq(0).text();
                     let monthElem = elemChildren.eq(1).text();
-                    if((day === dayElem || day === '26') && month.toUpperCase() === monthElem.toUpperCase()) {
+                    const foundDesiredDate = (day === dayElem || day === '26') && month.toUpperCase() === monthElem.toUpperCase();
+                    if(foundDesiredDate) {
                         dateFound = true;
                         elem.click();
-                        me.setPhase('findMovie');
-                        setTimeout(function() {
-                            me.findMovie();
-                        }, 3000);
+                        this.setPhase('findMovie');
+                        setTimeout(() => this.findMovie(), 3000);
                         return false;
                     }
                 });
             }
             if(!dateFound) {
                 setTimeout(() => {
-                    location.assign(me.DOWNTOWN_URL);
-                }, me.REFRESH_TIME);
+                    location.assign(this.DOWNTOWN_URL);
+                }, this.REFRESH_TIME);
             }
         },
-        findMovie: function(AMOUNT = 4) {
-            const me = this;
-            if(!me.isLoggedIn()) {
-                me.logIn();
+        findMovie(AMOUNT = 4) {
+            if(!this.isLoggedIn()) {
+                this.logIn();
             }
             let horariosContainer = $('#horarios');
             if(horariosContainer) {
@@ -158,7 +154,7 @@ var CCMovieSelector = {
                                             buyButton.click();
                                             setTimeout(() => {
                                                 let confirmButton = $('.sa-confirm-button-container .confirm');
-                                                me.setPhase('selectSeats');
+                                                this.setPhase('selectSeats');
                                                 confirmButton.click();
                                             }, 2000);
                                         }
@@ -179,18 +175,18 @@ var CCMovieSelector = {
                 }); 
             }
         },
-        selectSeats: function(numberOfSeats = 4) {
-            const me = this;
+        selectSeats(numberOfSeats = 4) {
             const HREF = location.href;
             const URL = 'caribbeanpay.com/seats';
-            if (HREF.includes(URL)) {
+            const isInSelectSeatsPage = HREF.includes(URL);
+            if (isInSelectSeatsPage) {
                 const seatsContainer = $('.sits__row');
-                const seatsContainerArr = seatsContainer.children();
+                const seatsContainer = seatsContainer.children();
                 let selectedSeatsArr = [];
                 let counter = 0;
                 let foundSeats = false;
                 let newSeatsArr = [];
-                seatsContainerArr.each((i, seat) => {
+                seatsContainer.each((i, seat) => {
                     if(seat.className.indexOf('sits__space') === -1) {
                         newSeatsArr.push(seat);
                     }
@@ -215,7 +211,7 @@ var CCMovieSelector = {
                 });
                 let midN = Math.round(nSeatArr.length / 2 + 2);
                 let midM = Math.round(mSeatArr.length / 2 + 2);
-                let selectTheSeats = function(arr, len) {
+                let selectTheSeats = (arr, len) => {
                     for (let i = len; i > 0; i--) {
                         let seat = arr[i];
                         if (seat.className.indexOf('btn-success') > -1 && seat.getAttribute('disabled') === null) {
@@ -244,7 +240,7 @@ var CCMovieSelector = {
                     selectTheSeats(newSeatsArr, newSeatsArr.length - 1);
                 }
                 if (foundSeats) {
-                    setTimeout(function () {
+                    setTimeout(() => {
                         let confirmButton = $('.sa-confirm-button-container .confirm')[0];
                         if ("createEvent" in document) {
                             var evt = document.createEvent("HTMLEvents");
@@ -253,75 +249,72 @@ var CCMovieSelector = {
                         } else {
                             confirmButton.fireEvent("click");
                         }
-                        me.setPhase('selectPaymentMethod');
+                        this.setPhase('selectPaymentMethod');
                     }, 2000);
                 }
             }else{
-                me.setPhase('selectDate');
-                location.assign(me.DOWNTOWN_URL);
+                this.setPhase('selectDate');
+                location.assign(this.DOWNTOWN_URL);
             }
         },
-        selectPaymentMethod: function() {
-            const me = this;
-            if(location.href.includes('caribbeanpay.com/checkout')) {
+        selectPaymentMethod() {
+            const isInCheckoutPage = location.href.includes('caribbeanpay.com/checkout');
+            if(isInCheckoutPage) {
                 $('img').each((i, elem) => {
                     let parent = elem.parentElement;
                     if(parent.nodeName === 'A') {
                         if(parent.href.includes('azul')) {
-                            me.setPhase('makePayment');
-                            setTimeout(function() {
+                            this.setPhase('makePayment');
+                            setTimeout(() => {
                                 parent.click();
                             }, 1000);
                         }
                     }
                 });
             }else{
-                me.setPhase('selectDate');
-                me.checkUrl();
+                this.setPhase('selectDate');
+                this.checkUrl();
             }
         },
-        makePayment: function() {
-            const me = this;
+        makePayment() {
             const HREF = location.href;
             if(HREF.includes('pagos.azul.com.do/paymentpage/MakePayment')) {
-                let correctPurchaseObj = me.checkPurchaseInfo();
-                if(correctPurchaseObj.place === 'Caribbean Cinemas' && correctPurchaseObj.amount === me.PAY_AMOUNT) {
-                    let movieSelector = me.getMovieSelector();
+                let correctPurchaseObj = this.checkPurchaseInfo();
+                if(correctPurchaseObj.place === 'Caribbean Cinemas' && correctPurchaseObj.amount === this.PAY_AMOUNT) {
+                    let movieSelector = this.getMovieSelector();
                     movieSelector.actionsTaken.push('Proper place selected and proper amount. ' + new Date());
-                    me.saveMovieSelector(movieSelector);
+                    this.saveMovieSelector(movieSelector);
                     $('#CreditCard').val('0123456789012345');
                     $('#ExpirationMonth').val('00');
                     $('#ExpirationYear').val('00');
                     $('#SecurityCode').val('000');
-                    me.setPhase('confirmPayment');
+                    this.setPhase('confirmPayment');
                     $('#SubmitButton').click();
                 }
             }else{
-                let movieSelector = me.getMovieSelector();
+                let movieSelector = this.getMovieSelector();
                 movieSelector.actionsTaken.push('In makePayment else ' + new Date());
-                me.saveMovieSelector(movieSelector);
+                this.saveMovieSelector(movieSelector);
             }
         },
-        confirmPayment: function() {
-            const me = this;
+        confirmPayment() {
             const HREF = location.href;
             let paymentCommited = false;
             const CONFIRM_PAYMENT_URL = 'pagos.azul.com.do/paymentpage/ConfirmPayment';
             if(HREF.includes(CONFIRM_PAYMENT_URL)) {
-                let correctPurchaseObj = me.checkPurchaseInfo();
-                if(correctPurchaseObj.place === 'Caribbean Cinemas' && correctPurchaseObj.amount === me.PAY_AMOUNT) {
+                let correctPurchaseObj = this.checkPurchaseInfo();
+                if(correctPurchaseObj.place === 'Caribbean Cinemas' && correctPurchaseObj.amount === this.PAY_AMOUNT) {
                     paymentCommited = true;
-                    me.setPhase('paymentConfirmed');
+                    this.setPhase('paymentConfirmed');
                     $('#SubmitButton').click();
                 }
             }else{
-                let movieSelector = me.getMovieSelector();
+                let movieSelector = this.getMovieSelector();
                 movieSelector.actionsTaken.push('In makePayment else ' + new Date());
-                me.saveMovieSelector(movieSelector);
+                this.saveMovieSelector(movieSelector);
             }
         },
-        checkPurchaseInfo: function() {
-            const me = this;
+        checkPurchaseInfo() {
             let correctPurchaseObj = {
                 place: '',
                 amount: '',
@@ -335,78 +328,72 @@ var CCMovieSelector = {
                         correctPurchaseObj.place = 'Caribbean Cinemas';
                     }
                 }else if(text1.includes('Monto Total Compra')) {
-                    if(text2.includes(me.PAY_AMOUNT)) {
-                        correctPurchaseObj.amount = me.PAY_AMOUNT;
+                    if(text2.includes(this.PAY_AMOUNT)) {
+                        correctPurchaseObj.amount = this.PAY_AMOUNT;
                     }
                 }
             });
             return correctPurchaseObj;
         },
-        isLoggedIn: function() {
-            const me = this;
-            me.checkUrl();
+        isLoggedIn() {
+            this.checkUrl();
             const welcomeMessage = $('nav').find('h5').text();
             if(welcomeMessage.trim().toUpperCase().includes('JEREMY THEN')) {
                 return true;
             }
             return false;
         },
-        logIn: function() {
-            const me = this;
+        logIn() {
             $('nav').find('ul').children().each((i, elem) => {
                 let text = elem.innerText;
                 if (text === 'Iniciar sesión') {
                     $(elem).find('a').click();
-                    setTimeout(function () {
+                    setTimeout(() => {
                         const emailField = $('#myLogin #email');
                         const passwordField = $('#myLogin #password');
                         const submitButton = $('#myLogin button.btn-submit');
                         emailField.val('email@gmail.com');
                         passwordField.val('pass');
-                        setTimeout(function () {
+                        setTimeout(() => {
                             submitButton.click();
                         }, 1000);
                     }, 1000);
                 }
             });  
         },
-        checkUrl: function() {
-            const me = this;
+        checkUrl() {
             const HREF = location.href;
-            const URL = me.DOWNTOWN_URL;
+            const URL = this.DOWNTOWN_URL;
             if(HREF !== URL) {
                 location.assign(URL);
             }
         },
-        getMovieSelector: function() {
-            const me = this;
+        getMovieSelector() {
             let movieSelector = localStorage.CCMovieSelector;
             if(movieSelector) {
                 movieSelector = JSON.parse(movieSelector);
             }
             return movieSelector? movieSelector: null;
         },
-        setMovieSelector: function(phase = 'selectDate') {
-            const me = this;
+        setMovieSelector(phase = 'selectDate') {
             const movieSelector = {
                 phase: phase,
                 date: {
-                    day: me.day,
-                    month: me.month
+                    day: this.day,
+                    month: this.month
                 },
                 status: 'working',
                 actionsTaken: []
             };
             localStorage.CCMovieSelector = JSON.stringify(movieSelector);
         },
-        saveMovieSelector: function(movieSelector) {
+        saveMovieSelector(movieSelector) {
             localStorage.CCMovieSelector = JSON.stringify(movieSelector);
         },
-        setPhase: function(phase) {
-            const me = this;
-            let movieSelector = me.getMovieSelector();
+        setPhase(phase) {
+            let movieSelector = this.getMovieSelector();
             movieSelector.phase = phase;
-            me.saveMovieSelector(movieSelector);
+            this.saveMovieSelector(movieSelector);
         }
     };
     
