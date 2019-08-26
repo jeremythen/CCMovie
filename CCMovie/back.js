@@ -96,37 +96,52 @@ var CCMovieSelector = {
         },
         findMovie: function(AMOUNT = 4) {
             const me = this;
-            if(!me.isLoggedIn()) me.logIn();
+            if(!me.isLoggedIn()) {
+                me.logIn();
+            }
             let horariosContainer = $('#horarios');
             if(horariosContainer) {
                 horariosContainer.children().each((index, movieElem) => {
                     let typeContainer = $(movieElem).find('.type');
-                    let imgTypeArr = [];
                     const VIP = 'VIP';
                     const CXC = 'CXC';
                     const TOKEN1 = 'AVENGER';
                     const TOKEN2 = 'END';
                     const TOKEN3 = 'GAME';
-                    const TOKENTest1 = 'MARVEL';
-                    const TOKENTest2 = 'CAPTAIN';
+
+                    let vipCxcType = {
+                        hasVipType: false,
+                        hasCxcType: false
+                    };
+
                     typeContainer.children().each((i, elem) => {
-                        if(elem.nodeName === 'IMG') {
-                            if(elem.src.toUpperCase().indexOf(VIP) > -1) imgTypeArr.push(VIP);
-                            if(elem.src.toUpperCase().indexOf(CXC) > -1) imgTypeArr.push(CXC);
+                        let isImgNode = elem.nodeName === 'IMG';
+                        if(isImgNode) {
+                            const imgSrc = elem.src.toUpperCase();
+                            if(imgSrc.includes(VIP)) {
+                                vipCxcType.hasVipType = true;
+                            }
+                            if(imgSrc.includes(CXC)) {
+                                vipCxcType.hasCxcType = true;
+                            }
                         }
                     });
-                    if(imgTypeArr.includes(VIP) && imgTypeArr.includes(CXC)) {
-                        let title = $(movieElem).find('h3').text().trim();
-                        if(title && title.toUpperCase().includes(TOKEN1) || (title.toUpperCase().includes(TOKEN2) && title.toUpperCase().includes(TOKEN3))) {
+                    if(vipCxcType.hasVipType && vipCxcType.hasCxcType) {
+                        let title = $(movieElem).find('h3').text().trim().toUpperCase();
+
+                        const isDesiredMovie = title && title.includes(TOKEN1) || (title.includes(TOKEN2) && title.includes(TOKEN3));
+                        
+                        if(isDesiredMovie) {
                             let allTimes = $(movieElem).find('ul').children();
                             let lastTime = allTimes[allTimes.length - 1];
                             let time = $(lastTime).text();
                             let timeButton = $(lastTime).find('a')[0];
                             if(timeButton) {
                                 timeButton.click();
-                                setTimeout(function() {
-                                    let comboBox = $(movieElem).find('.form-control')[0];
-                                    if(comboBox) {
+
+                                let comboBox = $(movieElem).find('.form-control')[0];
+
+                                    const setAmountOfSeats = () => {
                                         $(comboBox).val(AMOUNT);
                                         if ("createEvent" in document) {
                                             var evt = document.createEvent("HTMLEvents");
@@ -135,16 +150,25 @@ var CCMovieSelector = {
                                         } else {
                                             comboBox.fireEvent("onchange");
                                         }
-                                        setTimeout(function() {
-                                            let buyButton = $(movieElem).find('#compre')[0];
-                                            if(buyButton) {
-                                                buyButton.click();
-                                                setTimeout(function() {
-                                                    let confirmButton = $('.sa-confirm-button-container .confirm');
-                                                    me.setPhase('selectSeats');
-                                                    confirmButton.click();
-                                                }, 2000);
-                                            }
+                                    }
+
+                                    const clickBuyButtonAndConfirmOrder = () => {
+                                        let buyButton = $(movieElem).find('#compre')[0];
+                                        if(buyButton) {
+                                            buyButton.click();
+                                            setTimeout(() => {
+                                                let confirmButton = $('.sa-confirm-button-container .confirm');
+                                                me.setPhase('selectSeats');
+                                                confirmButton.click();
+                                            }, 2000);
+                                        }
+                                    }
+
+                                setTimeout(() => {
+                                    if(comboBox) {
+                                        setAmountOfSeats();
+                                        setTimeout(() => {
+                                            clickBuyButtonAndConfirmOrder();
                                         }, 1000);
                                     }
                                 }, 2000);
